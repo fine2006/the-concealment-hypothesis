@@ -1,10 +1,12 @@
-# Scheme-Matched Negatives: A Diagnostic Challenge Set for Fallacy Detection
+# Scheme Foils: A Diagnostic Challenge Set for Fallacy Detection
 
-Data release accompanying *The Concealment Hypothesis: What the "None" Class Doesn't Test
-in Fallacy Detection* (under review).
+Data release accompanying *Fallacy Benchmarks Measure Scheme Recognition, Not Fallacy
+Detection* (Singh, Pathak & Singh, 2026).
 
-This release contains the constructed negatives used in the paper: **matched negatives**
-(valid arguments instantiating the same Walton scheme as a paired fallacy) and
+A fallacy detector has two jobs: **detection**, separating fallacious arguments from valid
+ones, and **classification**, naming the type of fallacy an argument commits. This release
+targets the first. It contains the constructed negatives used in the paper: **matched
+negatives** (valid arguments instantiating the same Walton scheme as a paired fallacy) and
 **wrong-scheme negatives** (valid arguments on the same topic instantiating a *different*
 scheme, the control condition). Both were generated from source fallacies in two public
 benchmarks and filtered by an automated cross-model judge.
@@ -12,6 +14,10 @@ benchmarks and filtered by an automated cross-model judge.
 The set is intended for two uses: as a harder negative class against which to measure a
 fallacy detector's false-positive rate, and as a worked example of the construction-quality
 audit described in the paper.
+
+**Scope of this release:** the item sets only. The generation and validation pipeline code is
+not released; the full per-type prompts and judge criteria are reproduced in the paper's
+appendix, and the protocol is described in enough detail to reimplement.
 
 ---
 
@@ -23,6 +29,8 @@ audit described in the paper.
 | `cocolofa_task6_final.csv` | 738 | wrong-scheme | CoCoLoFa |
 | `reddit_task5_final.csv` | 387 | matched | Reddit |
 | `reddit_task6_final.csv` | 389 | wrong-scheme | Reddit |
+
+Totals: 1,042 matched and 1,127 wrong-scheme valid arguments.
 
 ### Schemas
 
@@ -75,28 +83,27 @@ Each condition carries a human-validated precision estimate. **The two estimates
 interchangeable — each applies only to its own condition.**
 
 **Matched negatives — 93.1%** (67 of 72 sampled items confirmed valid by majority vote of
-three independent annotators; 94.6% on CoCoLoFa, 87.5% on Reddit). The residual 6.9% is
+three independent annotators; 94.6% on CoCoLoFa, 87.5% on Reddit). The residual **6.9%** is
 real impurity: those items were retained by the judge but not confirmed valid by human
 annotators.
 
-**Wrong-scheme negatives — 77.5%** (31 of 40; 95% CI [62.5%, 87.7%]; 81.2% on CoCoLoFa,
-62.5% on Reddit). The impurity here is **concentrated in two target schemes**: appeal to
-nature (1 of 5 confirmed valid) and false dilemma (2 of 5). The remaining six target schemes
-ranged from 80% to 100%. Users should treat wrong-scheme items with those two target schemes
-with corresponding caution.
+**Wrong-scheme negatives — 77.5%** (31 of 40; 95% CI [62.5%, 87.7%]), leaving **22.5%**
+impurity. The shortfall is **concentrated in two target schemes**: appeal to nature and false
+dilemma. Users should treat wrong-scheme items with those two target schemes with
+corresponding caution.
 
-The asymmetry has a procedural cause. The judge applied five criteria to matched negatives
-(register, critical-question satisfaction, absence of over-proving, conclusion preservation,
-scheme fidelity) but only three to wrong-scheme negatives (register, on-topicality, scheme
-switch) — deliberately *not* critical-question satisfaction, which a wrong-scheme item is
-not required to have relative to the source scheme. The wrong-scheme condition was therefore
-never certified at critical-question level by the automated pipeline; the 77.5% figure is
-the first measurement of that.
+The asymmetry has a procedural cause. The judge checked matched negatives for scheme
+fidelity, critical-question satisfaction and conclusion preservation; wrong-scheme negatives
+were checked for register, on-topicality and scheme switching only — deliberately *not*
+critical-question satisfaction, which a wrong-scheme item is not required to have relative to
+the source scheme. A retained wrong-scheme item is therefore certified scheme-switched and
+on-topic, not certified a valid instance of its target scheme. The 77.5% figure is the first
+measurement of that.
 
 Both validation samples were drawn from the *retained* sets released here (not from
-discarded items), annotators were blind to any classifier's behaviour, and genuine
-benchmark-labelled fallacies were planted in each sample as a discrimination check.
-Full protocol in the paper's appendix.
+discarded items), the two annotator panels were separate and non-overlapping, annotators were
+blind to any classifier's behaviour, and genuine benchmark-labelled fallacies were planted in
+each sample as a discrimination check. Full protocol in the paper's appendix.
 
 ---
 
@@ -106,13 +113,14 @@ For each fallacious source item, two negatives were generated with **Gemini 2.5 
 using per-type prompts that state the target scheme and its critical question explicitly and
 are calibrated to the source corpus's register. Items are **written afresh** rather than
 minimally edited from the source, so topic, length, and register are held comparable while
-the source's surface wording is not carried over — this prevents residual lexical overlap
-from standing in for scheme content.
+the source's surface wording is not carried over. A minimal edit would hold the lexical
+surface and the scheme fixed at once, leaving a flag unattributable between the two; writing
+afresh removes shared wording as an explanation.
 
 A matched negative instantiates the source fallacy's own scheme and answers the critical
 question that fallacy leaves unanswered. A wrong-scheme negative instantiates a different
-scheme, balanced across the other seven types. Both conditions come off the same pipeline
-and differ only in target scheme.
+scheme, balanced across the other seven types. Both conditions come off the same pipeline and
+are built identically except for the scheme.
 
 Generated items were then filtered by a **cross-model judge (DeepSeek)** — chosen for being
 of a different architecture and training lineage from the generator, so that it does not
@@ -126,17 +134,23 @@ appendix.
 
 ## Suggested use
 
-To audit an existing fallacy benchmark, evaluate a detector trained on that benchmark
-against the matched negatives for the types it covers, and compare the resulting
-false-positive rate to the rate over the benchmark's native "none" class. The wrong-scheme
-set is the control: a scheme-specific effect shows up as matched negatives being classified
-as the *source* type far more often than wrong-scheme negatives are, not as a difference in
-raw flag rates.
+To audit an existing fallacy benchmark, evaluate a detector trained on that benchmark against
+the matched negatives for the types it covers, and compare the resulting false-positive rate
+to the rate over the benchmark's native "none" class. Neither step requires retraining or
+regenerating anything.
+
+The wrong-scheme set is the control: a scheme-specific effect shows up as matched negatives
+being classified as the *source* type far more often than wrong-scheme negatives are, not as
+a difference in raw flag rates. Because both conditions come off one pipeline, whatever the
+generator contributes it contributes to both, so the difference between them is not movable
+by the choice of generator, prompt or filter.
 
 Two cautions. First, these items are prototypical scheme instantiations; naturally occurring
 arguments are more often elliptical, and the paper does not offer rates measured on this set
 as estimates of deployment-time magnitude. Second, the measured impurity above is real —
-report it rather than treating the sets as perfectly clean.
+report it rather than treating the sets as perfectly clean. Note in particular that
+wrong-scheme flag rates are flag rates, not false-positive rates, since 22.5% of that
+condition is not certified valid.
 
 ---
 
@@ -171,7 +185,7 @@ Please cite both source datasets alongside this release.
 ## Citation
 
 ```
-[Anonymized for review. Citation to be added on publication.]
+[arXiv citation to be added on posting.]
 ```
 
 Please also cite the source corpora:
